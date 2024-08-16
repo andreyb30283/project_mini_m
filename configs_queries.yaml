@@ -1,0 +1,50 @@
+data_bases:
+  database_read:
+    'database': 'sakila'
+    'user': 'ich1'
+    'password': 'password'
+    'host': 'ich-db.ccegls0svc9m.eu-central-1.rds.amazonaws.com'
+    'port': '3306'
+
+
+  database_write:
+    'database': '310524-ptm_Andrii_Butov_mini_p'
+    'user': 'ich1'
+    'password': 'ich1_password_ilovedbs'
+    'host': 'mysql.itcareerhub.de'
+    'port': '3306'
+
+queries:
+  'select_genre': "SELECT name FROM category  group by name order by name;"
+  'insert_data': "INSERT INTO your_table (column1, column2) VALUES (%s, %s)"
+  'select_result': "SELECT f.title, c.name, f.release_year , f.description  
+                    FROM film as f 
+                    join film_category as fc 
+                    on fc.film_id= f.film_id 
+                    join category as c 
+                    on c.category_id=fc.category_id 
+                    where 1=1 
+                    "
+  database_write:
+    'create_db': 'create database if not exists `310524-ptm_Andrii_Butov_mini_p`;'
+
+    'create_table': 'create table if not exists `310524-ptm_Andrii_Butov_mini_p`.`top_queries`
+                  ( id int  primary key auto_increment ,
+                  queue varchar  (255) unique,
+                  count int
+                  )
+                  ;'
+    'read_from_table': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc limit 10;'
+    write_in_table_new_queue: 'insert into `310524-ptm_Andrii_Butov_mini_p`.`top_queries`
+                              (queue,count)
+                              values (%s,1);'
+    write_in_table_new_count: 'update  `310524-ptm_Andrii_Butov_mini_p`.`top_queries`
+                              set count=%s   where queue = %s;'
+
+#import yaml
+#
+#with open("config.yaml', 'r') as file:
+#    config = yaml.safe_load(file)
+#
+#db_config = config['database']
+#queries = config['queries']
