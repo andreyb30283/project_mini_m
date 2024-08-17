@@ -4,7 +4,7 @@ from connector import db_config_read, db_config_write
 from yaml import safe_load
 from logging import getLogger, info
 
-with open('../configs_queries.yaml', "r", encoding="utf-8") as file:
+with open('./configs_queries.yaml', "r", encoding="utf-8") as file:
     configs = safe_load(file)
     # print(configs)
 
@@ -12,8 +12,9 @@ queue_raw = configs['queries']['select_result']
 
 
 class ObjFetch:
-    def __init__(self, fetch: tuple, index: int, width=40):
-        self.description = None
+    def __init__(self, fetch: tuple, index: int, des=True, width=40):
+        self.description = ''
+        self.des = des
         self.year = None
         self.genre = None
         self.name = None
@@ -23,14 +24,12 @@ class ObjFetch:
         self.unpack()
         self.list_lines = self.create_self_list_lines()
 
-
     @classmethod
     def create_dict(cls, tuples):
         i = 1
         for tuple1 in tuples:
             i += 1
             ObjFetch(tuple1, i)
-
 
     def unpack(self):
         if self.fetch:
@@ -39,19 +38,18 @@ class ObjFetch:
             else:
                 self.name, self.genre, self.year, self.description = self.fetch
 
-    def create_self_list_lines(self, description=False) -> list:
+    def create_self_list_lines(self, des=False) -> list:
         result_list = []
-
         if self.genre and self.name is None and self.year is None:
-            lines_list_raw = [f'Genre number: {self.index}',
-                              f'Genre: {self.genre}']
+            lines_list_raw = [f'Номер фильма: {self.index}',
+                              f'Жанр: {self.genre}']
         else:
-            lines_list_raw = [f'Film number: {self.index}',
-                              f'Film name: {self.name}',
-                              f'Release year: {self.year},'
-                              f' Genre: {self.genre}']
-        if description:
-            lines_list_raw.append(f'Description: {self.description}')
+            lines_list_raw = [f'Номер фильма: {self.index}',
+                              f'Название : {self.name}',
+                              f'Год выпуска: {self.year}, '
+                              f'жанр: {self.genre}']
+        if des:
+            lines_list_raw.append(f'Описание: {self.description}')
         for element in lines_list_raw:
             list_words = element.split()
             if len(element) < self.width:
@@ -67,9 +65,10 @@ class ObjFetch:
         return result_list
 
     def __str__(self):
-        if self.list_lines:
+        str_list_lines = self.create_self_list_lines(True)
+        if str_list_lines:
             line_str = ''
-            for element in self.list_lines:
+            for element in str_list_lines:
                 line_str += f'{element}\n'
             return line_str
 

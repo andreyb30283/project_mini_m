@@ -4,23 +4,24 @@ import FilmQueryCLI_V2
 import yaml
 import logging
 
-with open('../configs_queries.yaml', "r", encoding="utf-8") as file:
+with open('./configs_queries.yaml', "r", encoding="utf-8") as file:
     configs = yaml.safe_load(file)
     print(configs)
 
 
 class MenuChoice:
     def __init__(self):
+        self.search_index = None
         self.year_start = 0
         self.year_end = 3000
         self.test_result_db = []
         self.genre = ''
-        self.search_res = ''
+        self.search_key = ''
         self.year_start_inp = ''
         self.year_end_inp = ''
         self.genre_inp = ''
         self.choice = ''
-        self.name_inp = ''
+        self.film_name_to_db = ''
         self.dict_genre = {}
         self.logger = logging.getLogger(__name__)
         self.queue_read_from_rw_db = configs['queries']['database_write']['read_from_table']
@@ -32,7 +33,7 @@ class MenuChoice:
 
     def main_menu(self):
         print(f'{"_" * 40}\nГлавное меню:')
-        print(f"1. Фильтрация фильмов по названию {self.green_t(self.name_inp)}")
+        print(f"1. Фильтрация фильмов по названию {self.green_t(self.film_name_to_db)}")
         print(f"2. Фильтрация по жанру {self.green_t(self.genre)}")
         print(f"3. Фильтрация по году {self.green_t(self.year_start_inp)}-{self.green_t(self.year_end_inp)} ")
         print("4. Поиск по базе\n5. Просмотр топ запросов ")
@@ -52,12 +53,11 @@ class MenuChoice:
 
     def filter_by_name(self):
         print('_______________________________________________________________________________')
-        self.name_inp = input('Введите название фильма: ').strip()
+        self.film_name_to_db = input('Введите название фильма: ').strip()
         self.main_menu()
 
     def filter_by_genre(self):
         print('_______________________________________________________________________________')
-
         list_genre = Dc.rw_to_db(configs['queries']['select_genre'], None, db_config_read)
         list_obj = []
         for i, name in enumerate(list_genre):
@@ -65,8 +65,7 @@ class MenuChoice:
             list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
             self.dict_genre[i] = name[0].strip()
         FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
-        self.genre_inp = input('Введите свой выбор: ')
-
+        self.genre_inp = input('Введите жанр или его номер: ').strip()
         if self.genre_inp == '':
             self.genre = ''
         else:
@@ -75,7 +74,8 @@ class MenuChoice:
                     self.genre = genre
                 elif self.genre_inp.lower() in f'{genre}'.lower():
                     self.genre = genre
-        # self.search()
+            if self.genre == '':
+                print(f"{self.green_t(f"Жанр '{self.genre_inp}' не найден.")}")
         self.main_menu()
 
     def top_search(self):
@@ -91,83 +91,158 @@ class MenuChoice:
                     print(f"частота запроса '{self.green_t(value2)}' запрос: '{self.green_t(value1)}' ")
         except Exception as e:
             print(f'top_search: {e}')
-        input(f'{self.green_t('Нажмите "ENTER" для выхода')} из просмотра топ запросов. ')
+        input(f'Нажмите {self.green_t(' "ENTER" ')} для выхода из просмотра топ запросов. ')
         self.main_menu()
 
     def filter_by_year(self):
         print('_______________________________________________________________________________')
         try:
-            self.year_start_inp = int(input('Введите с какого года фильм : '))
-            self.year_end_inp = int(input('Введите до какого года фильм : '))
+            self.year_start_inp = int(input('Введите с какого года фильм : ').strip())
+            self.year_end_inp = int(input('Введите до какого года фильм : ').strip())
 
         except ValueError:
-            print("не корректный ввод")
+            print("Введите число (Например: 2000)")
+            self.year_start_inp = self.year_end_inp = ''
+
         self.main_menu()
 
-    def search(self):
-        print('_______________________________________________________________________________')
-        if self.year_end_inp:
-            self.year_end = self.year_end_inp
-        else:
-            self.year_end = 3000
-        if self.year_start_inp:
-            self.year_start = self.year_start_inp
-        else:
-            self.year_start = 0
-        params = None
-        # dict_search = {}
-        queue_raw = configs['queries']['select_result']
-        while True:
-            queue_read = queue_raw + f" and f.release_year>={self.year_start} and f.release_year<={self.year_end}"
-            if self.genre:
-                queue_read += f" and c.name like '{self.genre}'"
-            if self.name_inp:
-                queue_read += " and f.title like %s"
-                params = ('%' + self.name_inp + "%",)
-            queue_read += " order by f.title "
-            self.logger.info(f'{queue_read} {params}')
-            list_films = Dc.rw_to_db(queue_read, params, db_config_read)
-            if list_films:
-                list_obj = []
-                for i, name in enumerate(list_films):
-                    i += 1
-                    list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
-                    # self.dict_genre[i] = name[0].strip()
-                FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
-
-                # if list_films:
-                #     for i, name in enumerate(list_films):
-                #         i += 1
-
-                # # for n in name:
-                # print(
-                #     f"{i}. Название '{self.green_t(name[0])}' жанр '{self.green_t(name[1])}'. "
-                #     f"год выпуска фильма '{self.green_t(name[2])}' ")
-                #     dict_search[i] = name
-            self.search_res = input('Введите номер или часть имени фильма или "0" для выхода из этого меню: ')
-            if self.search_res == '0':
-                break
+    @staticmethod
+    def db_fetch_print(list_films):
+        if list_films:
+            list_obj = []
             for i, name in enumerate(list_films):
                 i += 1
-                if self.search_res.isdigit():
-                    if int(self.search_res) == i:
-                        print(
-                            f"{i}. Название '{self.green_t(name[0])}' жанр '{self.green_t(name[1])}'. "
-                            f"год выпуска фильма '{self.green_t(name[2])}' ")
-                        print(f'Описание фильма: {self.green_t(name[-1])}')
-                        self.name_inp = name[0]
-                        break
-                elif self.search_res.upper() in str(name[0]):
-                    self.name_inp = name[0]
-                    print(self.green_t(name))
+                list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
+                # self.dict_genre[i] = name[0].strip()
+            FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
 
-            else:
-                print('Кино не найдено')
-                input("Нажмите 'ENTER'")
-                break
+    # def search(self):
+    #     print('_______________________________________________________________________________')
+    #                                 # print(f'Ключевое слово для поиска "{self.film_name_to_db}":  ')
+    #                                 # self.search_key = input(f'Введи ключевое слово для поиска по имени :')
+    #                                 #
+    #                                 # if self.search_key:
+    #                                 #     self.film_name_to_db = self.search_key
+    #     if self.year_end_inp:
+    #         self.year_end = self.year_end_inp
+    #     else:
+    #         self.year_end = 3000
+    #     if self.year_start_inp:
+    #         self.year_start = self.year_start_inp
+    #     else:
+    #         self.year_start = 0
+    #     params = None
+    #     # dict_search = {}
+    #     queue_raw = configs['queries']['select_result']
+    #     queue_read = queue_raw + f" and f.release_year>={self.year_start} and f.release_year<={self.year_end}"
+    #     if self.genre:
+    #         queue_read += f" and c.name like '{self.genre}'"
+    #     if self.film_name_to_db:
+    #         queue_read += " and f.title like %s"
+    #         params = ('%' + self.film_name_to_db + "%",)
+    #     queue_read += " order by f.title "
+    #     self.logger.info(f'{queue_read} {params}')
+    #     list_films = Dc.rw_to_db(queue_read, params, db_config_read)
+    #
+    #
+    #
+    #     self.query_to_db()
+    #     if list_films:
+    #         if len(list_films) == 1:
+    #             name = list_films
+    #             print(
+    #                 f"Название '{self.green_t(name[0])}' жанр '{self.green_t(name[1])}'. "
+    #                 f"год выпуска фильма '{self.green_t(name[2])}' ")
+    #             print(f'Описание фильма: {self.green_t(name[-1])}')
+    #         list_obj = []
+    #         for i, name in enumerate(list_films):
+    #             i += 1
+    #             list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
+    #         FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
+    #         print(f'Введите номер или часть имени фильма или "0" для выхода из этого меню.')
+    #         self.search_key = input(f'Ключевое слово для поиска"{self.search_key}": ')
+    #         if self.search_key == '0':
+    #             self.main_menu()
+    #         elif self.search_key.isdigit():
+    #             self.search_index: int = int(self.search_key)
+    #             if self.search_index - 1 in range(0, len(list_obj)):
+    #                 print(list_obj[self.search_index - 1])
+    #                 self.search()
+    #         else:
+    #             self.film_name_to_db = self.search_key
+    #
+    #         self.search()
+    #     else:
+    #         print('Кино не найдено')
+    #         self.film_name_to_db = ''
+    #         self.search()
 
+    def search(self):
+
+        print('_______________________________________________________________________________')
+
+        def request_to_db():
+            # Установка значений для года начала и конца
+            self.year_end = self.year_end_inp if self.year_end_inp else 3000
+            self.year_start = self.year_start_inp if self.year_start_inp else 0
+            # Формирование запроса к базе данных
+            params = None
+            query = configs['queries']['select_result']
+            query += f" and f.release_year >= {self.year_start} and f.release_year <= {self.year_end}"
+            if self.genre:
+                query += f" and c.name like '{self.genre}'"
+            if self.film_name_to_db:
+                query += " and f.title like %s"
+                params = ('%' + self.film_name_to_db + "%",)
+            query += " order by f.title"
+            self.logger.info(f'{query} {params}')
+            list_films1 = Dc.rw_to_db(query, params, db_config_read)
+            return list_films1
+
+        list_films = request_to_db()
         self.query_to_db()
-        self.main_menu()
+        if list_films:
+            # if len(list_films) == 1:
+            #     name = list_films[0]
+            #     list_obj = FilmQueryCLI_V2.ObjFetch(name, 1, True)
+            #     FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
+            #     # print(f"Название '{self.green_t(name[0])}' жанр '{self.green_t(name[1])}'. "
+            #     #       f"год выпуска фильма '{self.green_t(name[2])}' ")
+            #     # print(f'Описание фильма: {self.green_t(name[-1])}')
+            # else:
+            list_obj = [FilmQueryCLI_V2.ObjFetch(name, i + 1) for i, name in enumerate(list_films)]
+            FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
+            print(f'Введите номер или часть имени фильма или "0" для выхода из этого меню.')
+            self.search_key = input(f'Ключевое слово для поиска "{self.search_key}": ')
+            if self.search_key == '0':
+                self.main_menu()
+            elif self.search_key.isdigit():
+                self.search_index = int(self.search_key)
+                if 0 <= self.search_index - 1 < len(list_obj):
+                    self.film_name_to_db = list_obj[self.search_index - 1].name
+                    # print(list_obj[self.search_index - 1].name)
+                    one_film = request_to_db()
+                    one_film = one_film[0]
+                    one_obj = FilmQueryCLI_V2.ObjFetch(one_film, 1)
+                    print(one_obj)
+                    # list_one_obj=[]
+                    # list_one_obj.append(one_obj)
+                    # FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_one_obj)
+
+                    # print(f"Название '{one_film[0]}' жанр '{one_film[1]}'. "
+                    #       f"год выпуска фильма '{one_film[2]}' ")
+                    # print(f'Описание фильма: {one_film[-1]}')
+                    # input("Нажмите ентер чтобы продолжить")
+                    self.search_key = ''
+                    self.film_name_to_db = ''
+                    self.search()
+            else:
+                self.film_name_to_db = self.search_key
+                self.search()
+        else:
+            print('Кино не найдено')
+            self.film_name_to_db = ''
+            self.search()
 
     # for key, value in dict_search.items():
     #     if self.genre_inp.lower() in f'{key}{value}'.lower():
@@ -182,13 +257,13 @@ class MenuChoice:
             Dc.rw_to_db(create_table_queue, None, db_config_write)
             self.logger.info('query_to_db OK')
 
-            data_queue_to_rw_db = f'{self.genre} {self.year_start_inp}-{self.year_end_inp} {self.name_inp}'
+            data_queue_to_rw_db = f'{self.genre} {self.year_start_inp}-{self.year_end_inp} {self.film_name_to_db}'
             list_queries = Dc.rw_to_db(self.queue_read_from_rw_db, None, db_config_write)
 
             # data_queue_to_rw_db = 'New 0-3000+'
             # list_queries = [('test', 3), ('New 0-3000+', 1)]
             self.logger.info(f"list_queries: {list_queries} data_queue_to_rw_db: {data_queue_to_rw_db}")
-            if self.genre or self.name_inp:
+            if self.genre or self.film_name_to_db:
                 for queue, count in list_queries:
                     # print(queue)
                     # print(data_queue_to_rw_db)
