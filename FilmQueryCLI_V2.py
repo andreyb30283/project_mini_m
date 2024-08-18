@@ -100,10 +100,6 @@ class Pages:
                         count_raw = 1
         except Exception as e:
             print(e)
-
-        # for elements in dict_pages[100]:
-        #     print(elements)
-        # print(count_page)
         return cls.dict_pages, count_page
 
     @classmethod

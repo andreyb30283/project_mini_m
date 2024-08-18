@@ -9,13 +9,11 @@ db_config_read = configs['data_bases']['database_read']
 db_config_write = configs['data_bases']['database_write']
 
 
-
 class DatabaseConnector:
     connection = None
     query_r = ''
     query_w = ''
     logger = logging.getLogger(__name__)
-
     # logging.basicConfig(level=logging.INFO)
     @classmethod
     def connect(cls, config_c):
