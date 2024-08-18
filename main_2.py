@@ -192,7 +192,7 @@ class MenuChoice:
             query += " order by f.title"
             self.logger.info(f'{query} {params}')
             list_films1 = Dc.rw_to_db(query, params, db_config_read)
-            self.query_to_db()
+
             return list_films1
 
         list_films = request_to_db()
@@ -214,14 +214,18 @@ class MenuChoice:
                 self.search_index = int(self.search_key)
                 if 0 <= self.search_index - 1 < len(list_obj):
                     self.film_name_to_db = list_obj[self.search_index - 1].name
+                    self.query_to_db()
                     self.search()
             else:
                 self.film_name_to_db = self.search_key
+                self.query_to_db()
                 self.search()
         else:
+            self.film_name_to_db = self.search_key
             print('Кино не найдено')
             input("Press Enter ")
             self.film_name_to_db = ''
+            self.query_to_db()
             self.search()
 
     def query_to_db(self):
@@ -236,27 +240,40 @@ class MenuChoice:
             list_queries = Dc.rw_to_db(self.queue_read_from_rw_db, None, db_config_write)
             self.logger.info(f"list_queries: {list_queries} data_queue_to_rw_db: {data_queue_to_rw_db}")
             if self.genre or self.film_name_to_db:
-                for queue, count in list_queries:
-                    if queue == data_queue_to_rw_db:
-                        count += 1
-                        try:
-                            self.test_result_db = Dc.rw_to_db(
-                                write_in_table_new_count,
-                                (count, data_queue_to_rw_db),
-                                db_config_write)
-                        except Exception as error:
-                            self.logger.error(f"Ошибка в query_to_db: {error}")
-                            raise
+                if list_queries:
+                    for queue, count in list_queries:
+                        self.logger.info('FOR ')
+                        if queue == data_queue_to_rw_db:
+                            count += 1
+                            try:
+                                self.test_result_db = Dc.rw_to_db(
+                                    write_in_table_new_count,
+                                    (count, data_queue_to_rw_db),
+                                    db_config_write)
+                                self.logger.info(f'try update COUNT: {self.test_result_db}')
+                            except Exception as error:
+                                self.logger.error(f"Ошибка в query_to_db: {error}")
+                                raise
+                            break
+                        else:
+                            try:
+                                self.test_result_db = Dc.rw_to_db(write_in_table_new_queue,
+                                                                  (data_queue_to_rw_db,),
+                                                                  db_config_write)
+                                self.logger.info(f'else try write : {self.test_result_db}')
+                            except Exception as error:
+                                self.logger.error(f"Ошибка в query_to_db: {error}")
+                                raise
 
-                        break
-                    else:
-                        try:
-                            self.test_result_db = Dc.rw_to_db(write_in_table_new_queue,
-                                                              (data_queue_to_rw_db,),
-                                                              db_config_write)
-                        except Exception as error:
-                            self.logger.error(f"Ошибка в query_to_db: {error}")
-                            raise
+                else:
+                    try:
+                        self.test_result_db = Dc.rw_to_db(write_in_table_new_queue,
+                                                          (data_queue_to_rw_db,),
+                                                          db_config_write)
+                        self.logger.info(f'else try write : {self.test_result_db}')
+                    except Exception as error:
+                        self.logger.error(f"Ошибка в query_to_db: {error}")
+                        raise
             self.logger.info(f'self.test_result_db : {self.test_result_db}')
 
         except Exception as error:
