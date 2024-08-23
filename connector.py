@@ -14,6 +14,7 @@ class DatabaseConnector:
     query_r = ''
     query_w = ''
     logger = logging.getLogger(__name__)
+
     # logging.basicConfig(level=logging.INFO)
     @classmethod
     def connect(cls, config_c):

@@ -1,12 +1,8 @@
-from abc import ABC, abstractmethod
-from connector import DatabaseConnector as Dc
-from connector import db_config_read, db_config_write
 from yaml import safe_load
-from logging import getLogger, info
+import logging
 
 with open('./configs_queries.yaml', "r", encoding="utf-8") as file:
     configs = safe_load(file)
-    # print(configs)
 
 queue_raw = configs['queries']['select_result']
 
@@ -15,14 +11,12 @@ class ObjFetch:
     def __init__(self, fetch: tuple, index: int, des=True, width=40):
         self.description = ''
         self.des = des
-        self.year = None
-        self.genre = None
-        self.name = None
-        self.width: int = width
+        self.year, self.genre, self.name, self.width = None, None, None, width
         self.fetch = fetch
         self.index: int = index
         self.unpack()
         self.list_lines = self.create_self_list_lines()
+        logging.basicConfig(level=logging.INFO)
 
     @classmethod
     def create_dict(cls, tuples):
@@ -41,7 +35,7 @@ class ObjFetch:
     def create_self_list_lines(self, des=False) -> list:
         result_list = []
         if self.genre and self.name is None and self.year is None:
-            lines_list_raw = [f'Номер фильма: {self.index}',
+            lines_list_raw = [f'Номер жанра: {self.index}',
                               f'Жанр: {self.genre}']
         else:
             lines_list_raw = [f'Номер фильма: {self.index}',
@@ -74,11 +68,10 @@ class ObjFetch:
 
 
 class Pages:
-    dict_pages = {}
 
     @classmethod
     def parse_list_obj_to_column_page(cls, obj_list):
-        # dict_pages = {}
+        cls.dict_pages = {}
         list_lines = []
         count_raw = 1
         count_page = 1
@@ -88,32 +81,60 @@ class Pages:
                     if i + 1 < len(obj_list):
                         list_lines.extend(cls.column(obj_list[i], obj_list[i + 1]))
                     else:
-                        list_lines.extend(cls.column(obj_list[i], []))
-                    # list_lines.extend(cls.column(obj_list[i], obj_list[i + 1]))
-                    cls.dict_pages[count_page] = list_lines
-                    count_raw += 1
-                    # print(count_page)
-                    if count_raw == 6:
-                        # f"{'_' * 40}Page {count_page}{'_' * 40}"
-                        count_page += 1
-                        list_lines = []
-                        count_raw = 1
+                        list_lines.extend(cls.column(obj_list[i]))
+                    if list_lines:
+                        count_raw += 1
+                        cls.dict_pages[count_page] = list_lines
+                        if count_raw == 11:
+                            count_page += 1
+                            list_lines = []
+                            count_raw = 1
+            count_page = list(cls.dict_pages.keys())[-1]
+            for _ in cls.dict_pages[1]:
+                print(_)
+            while True:
+                if count_page == 1:
+                    break
+                try:
+                    inp = int(input(f"""Введите номер страницы из {count_page} или "0" для выхода """).strip())
+                except ValueError:
+                    pass
+                    continue
+                if inp == 0:
+                    break
+                if inp in cls.dict_pages:
+                    for _ in cls.dict_pages[inp]:
+                        print(_)
         except Exception as e:
-            print(e)
-        return cls.dict_pages, count_page
+            pass
 
     @classmethod
-    def column(cls, obj1, obj2):
+    def column(cls, obj1, obj2=None):
         result_column_lines_list = []
         column1 = obj1.list_lines
         column2 = obj2.list_lines if obj2 else ['']
-        if column1 or column2:
-            for i in range(max(len(column1), len(column2))):
-                line1 = column1[i] if i < len(column1) else ''
-                line2 = column2[i] if i < len(column2) else ''
-                print(f'{line1.ljust(50, ' ')} {line2}')
-                result_column_lines_list.append(f'{line1.ljust(50)} {line2}')
-            print('')
-            result_column_lines_list.append('')
-            result_column_lines_list.append('')
+        max_length = max(len(column1), len(column2))
+        for i in range(max_length):
+            line1 = column1[i] if i < len(column1) else ''
+            line2 = column2[i] if i < len(column2) else ''
+            formatted_line = f"{line1.ljust(50)} {line2}"
+            # print(formatted_line)
+            result_column_lines_list.append(formatted_line)
+        # print('')
+        result_column_lines_list.extend([''])
         return result_column_lines_list
+
+    # def column(cls, obj1, obj2):
+    #     result_column_lines_list = []
+    #     column1 = obj1.list_lines
+    #     column2 = obj2.list_lines if obj2 else ['']
+    #     if column1 or column2:
+    #         for i in range(max(len(column1), len(column2))):
+    #             line1 = column1[i] if i < len(column1) else ''
+    #             line2 = column2[i] if i < len(column2) else ''
+    #             print(f'{line1.ljust(50, ' ')} {line2}')
+    #             result_column_lines_list.append(f'{line1.ljust(50)} {line2}')
+    #         print('')
+    #         result_column_lines_list.append('')
+    #         result_column_lines_list.append('')
+    #     return result_column_lines_list

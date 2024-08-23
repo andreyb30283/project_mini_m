@@ -34,17 +34,18 @@ queries:
                   count int
                   )
                   ;'
-    'read_from_table': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc limit 10;'
+    read_from_table_lim': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc limit 10;'
+    'read_from_table': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc ;'
     write_in_table_new_queue: 'insert into `310524-ptm_Andrii_Butov_mini_p`.`top_queries`
                               (queue,count)
-                              values (`%s`,1);'
+                              values (%s,1);'
     write_in_table_new_count: 'update  `310524-ptm_Andrii_Butov_mini_p`.`top_queries`
-                              set count=%s   where queue = `%s`;'
+                              set count=%s   where queue = %s;'
 
-#import yaml
-#
-#with open("config.yaml', 'r') as file:
-#    config = yaml.safe_load(file)
-#
-#db_config = config['database']
-#queries = config['queries']
+                                  #import yaml
+                                  #
+                                  #with open("config.yaml', 'r') as file:
+                                  #    config = yaml.safe_load(file)
+                                  #
+                                  #db_config = config['database']
+                                  #queries = config['queries']

@@ -1,12 +1,11 @@
 from connector import DatabaseConnector as Dc
 from connector import db_config_read, db_config_write
-import FilmQueryCLI_V2
+import Film_pages
 import yaml
 import logging
 
 with open('./configs_queries.yaml', "r", encoding="utf-8") as file:
     configs = yaml.safe_load(file)
-    print(configs)
 
 
 class MenuChoice:
@@ -62,9 +61,9 @@ class MenuChoice:
         list_obj = []
         for i, name in enumerate(list_genre):
             i += 1
-            list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
+            list_obj.append(Film_pages.ObjFetch(name, i))
             self.dict_genre[i] = name[0].strip()
-        FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
+        Film_pages.Pages.parse_list_obj_to_column_page(list_obj)
         self.genre_inp = input('Введите жанр или его номер: ').strip()
         if self.genre_inp == '':
             self.genre = ''
@@ -82,7 +81,8 @@ class MenuChoice:
         print('_______________________________________________________________________________')
         print('ТОП ЗАПРОСОВ ДЛЯ ПОИСКА ФИЛЬМОВ')
         try:
-            top_s_res = Dc.rw_to_db(self.queue_read_from_rw_db, None, db_config_write)
+            top_s_res = Dc.rw_to_db("select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`"
+                                    "top_queries` order by count desc limit 10", None, db_config_write)
             if top_s_res:
                 for i, value in enumerate(top_s_res):
                     i += 1
@@ -110,70 +110,8 @@ class MenuChoice:
             list_obj = []
             for i, name in enumerate(list_films):
                 i += 1
-                list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
-                # self.dict_genre[i] = name[0].strip()
-            FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
-
-    # def search(self):
-    #     print('_______________________________________________________________________________')
-    #                                 # print(f'Ключевое слово для поиска "{self.film_name_to_db}":  ')
-    #                                 # self.search_key = input(f'Введи ключевое слово для поиска по имени :')
-    #                                 #
-    #                                 # if self.search_key:
-    #                                 #     self.film_name_to_db = self.search_key
-    #     if self.year_end_inp:
-    #         self.year_end = self.year_end_inp
-    #     else:
-    #         self.year_end = 3000
-    #     if self.year_start_inp:
-    #         self.year_start = self.year_start_inp
-    #     else:
-    #         self.year_start = 0
-    #     params = None
-    #     # dict_search = {}
-    #     queue_raw = configs['queries']['select_result']
-    #     queue_read = queue_raw + f" and f.release_year>={self.year_start} and f.release_year<={self.year_end}"
-    #     if self.genre:
-    #         queue_read += f" and c.name like '{self.genre}'"
-    #     if self.film_name_to_db:
-    #         queue_read += " and f.title like %s"
-    #         params = ('%' + self.film_name_to_db + "%",)
-    #     queue_read += " order by f.title "
-    #     self.logger.info(f'{queue_read} {params}')
-    #     list_films = Dc.rw_to_db(queue_read, params, db_config_read)
-    #
-    #
-    #
-    #     self.query_to_db()
-    #     if list_films:
-    #         if len(list_films) == 1:
-    #             name = list_films
-    #             print(
-    #                 f"Название '{self.green_t(name[0])}' жанр '{self.green_t(name[1])}'. "
-    #                 f"год выпуска фильма '{self.green_t(name[2])}' ")
-    #             print(f'Описание фильма: {self.green_t(name[-1])}')
-    #         list_obj = []
-    #         for i, name in enumerate(list_films):
-    #             i += 1
-    #             list_obj.append(FilmQueryCLI_V2.ObjFetch(name, i))
-    #         FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
-    #         print(f'Введите номер или часть имени фильма или "0" для выхода из этого меню.')
-    #         self.search_key = input(f'Ключевое слово для поиска"{self.search_key}": ')
-    #         if self.search_key == '0':
-    #             self.main_menu()
-    #         elif self.search_key.isdigit():
-    #             self.search_index: int = int(self.search_key)
-    #             if self.search_index - 1 in range(0, len(list_obj)):
-    #                 print(list_obj[self.search_index - 1])
-    #                 self.search()
-    #         else:
-    #             self.film_name_to_db = self.search_key
-    #
-    #         self.search()
-    #     else:
-    #         print('Кино не найдено')
-    #         self.film_name_to_db = ''
-    #         self.search()
+                list_obj.append(Film_pages.ObjFetch(name, i))
+            Film_pages.Pages.parse_list_obj_to_column_page(list_obj)
 
     def search(self):
         print('_______________________________________________________________________________')
@@ -183,29 +121,28 @@ class MenuChoice:
             self.year_start = self.year_start_inp if self.year_start_inp else 0
             params = None
             query = configs['queries']['select_result']
-            query += f" and f.release_year >= {self.year_start} and f.release_year <= {self.year_end}"
+            if self.year_start or self.year_end:
+                query += f" and f.release_year >= {self.year_start} and f.release_year <= {self.year_end}"
             if self.genre:
                 query += f" and c.name like '{self.genre}'"
             if self.film_name_to_db:
                 query += " and f.title like %s"
                 params = ('%' + self.film_name_to_db + "%",)
-            query += " order by f.title"
+            query += " order by f.title "
             self.logger.info(f'{query} {params}')
-            list_films1 = Dc.rw_to_db(query, params, db_config_read)
-
-            return list_films1
+            return Dc.rw_to_db(query, params, db_config_read)
 
         list_films = request_to_db()
         if len(list_films) == 1:
-            one_obj = FilmQueryCLI_V2.ObjFetch(list_films[0], 1)
+            one_obj = Film_pages.ObjFetch(list_films[0], 1)
             print(one_obj)
             self.search_key = ''
             self.film_name_to_db = ''
             input(f"{self.green_t("Press Enter")}")
             self.search()
         if list_films:
-            list_obj = [FilmQueryCLI_V2.ObjFetch(name, i + 1) for i, name in enumerate(list_films)]
-            FilmQueryCLI_V2.Pages.parse_list_obj_to_column_page(list_obj)
+            list_obj = [Film_pages.ObjFetch(name, i + 1) for i, name in enumerate(list_films)]
+            Film_pages.Pages.parse_list_obj_to_column_page(list_obj)
             print(f'Введите номер или часть имени фильма или "0" для выхода из этого меню.')
             self.search_key = input(f'Ключевое слово для поиска "{self.search_key}": ')
             if self.search_key == '0':
@@ -236,34 +173,38 @@ class MenuChoice:
             write_in_table_new_queue = configs['queries']['database_write']['write_in_table_new_queue']
             Dc.rw_to_db(create_table_queue, None, db_config_write)
             self.logger.info('query_to_db OK')
-            data_queue_to_rw_db = f'{self.genre} {self.year_start_inp}-{self.year_end_inp} {self.film_name_to_db}'
+            data_queue_to_rw_db = ''
+            data_queue_to_rw_db += f'Жанр: {self.genre} ' if self.genre else ''
+            data_queue_to_rw_db += f' Год выпуска: {self.year_start_inp} ' if self.year_start_inp else ''
+            data_queue_to_rw_db += f'- {self.year_end_inp} ' if self.year_end_inp else ''
+            data_queue_to_rw_db += f'Ключевое слово: "{self.film_name_to_db}"' if {self.film_name_to_db} else ''
+            # data_queue_to_rw_db = f'{self.genre} {self.year_start_inp}-{self.year_end_inp} {self.film_name_to_db}'
             list_queries = Dc.rw_to_db(self.queue_read_from_rw_db, None, db_config_write)
             self.logger.info(f"list_queries: {list_queries} data_queue_to_rw_db: {data_queue_to_rw_db}")
-            if self.genre or self.film_name_to_db:
+            if data_queue_to_rw_db:
                 if list_queries:
                     for queue, count in list_queries:
-                        self.logger.info('FOR ')
+                        self.logger.info(f'FOR {queue}')
+                        self.logger.info(f'FOR {queue} {data_queue_to_rw_db}')
                         if queue == data_queue_to_rw_db:
                             count += 1
                             try:
-                                self.test_result_db = Dc.rw_to_db(
-                                    write_in_table_new_count,
-                                    (count, data_queue_to_rw_db),
-                                    db_config_write)
+                                self.test_result_db = Dc.rw_to_db(write_in_table_new_count,
+                                                                  (count, data_queue_to_rw_db), db_config_write)
                                 self.logger.info(f'try update COUNT: {self.test_result_db}')
                             except Exception as error:
                                 self.logger.error(f"Ошибка в query_to_db: {error}")
                                 raise
                             break
-                        else:
-                            try:
-                                self.test_result_db = Dc.rw_to_db(write_in_table_new_queue,
-                                                                  (data_queue_to_rw_db,),
-                                                                  db_config_write)
-                                self.logger.info(f'else try write : {self.test_result_db}')
-                            except Exception as error:
-                                self.logger.error(f"Ошибка в query_to_db: {error}")
-                                raise
+                    else:
+                        try:
+                            self.test_result_db = Dc.rw_to_db(write_in_table_new_queue,
+                                                              (data_queue_to_rw_db,),
+                                                              db_config_write)
+                            self.logger.info(f'else try write : {self.test_result_db}')
+                        except Exception as error:
+                            self.logger.error(f"Ошибка в query_to_db: {error}")
+                            raise
 
                 else:
                     try:
