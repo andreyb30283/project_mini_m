@@ -1,12 +1,3 @@
-from yaml import safe_load
-import logging
-
-with open('./configs_queries.yaml', "r", encoding="utf-8") as file:
-    configs = safe_load(file)
-
-queue_raw = configs['queries']['select_result']
-
-
 class ObjFetch:
     def __init__(self, fetch: tuple, index: int, des=True, width=40):
         self.description = ''
@@ -16,7 +7,7 @@ class ObjFetch:
         self.index: int = index
         self.unpack()
         self.list_lines = self.create_self_list_lines()
-        logging.basicConfig(level=logging.INFO)
+
 
     @classmethod
     def create_dict(cls, tuples):
@@ -96,7 +87,7 @@ class Pages:
                 if count_page == 1:
                     break
                 try:
-                    inp = int(input(f"""Введите номер страницы из {count_page} или "0" для выхода """).strip())
+                    inp = int(input(f"""Введите номер страницы из {count_page} или "0" для выхода: """).strip())
                 except ValueError:
                     pass
                     continue
@@ -118,23 +109,7 @@ class Pages:
             line1 = column1[i] if i < len(column1) else ''
             line2 = column2[i] if i < len(column2) else ''
             formatted_line = f"{line1.ljust(50)} {line2}"
-            # print(formatted_line)
             result_column_lines_list.append(formatted_line)
-        # print('')
         result_column_lines_list.extend([''])
         return result_column_lines_list
 
-    # def column(cls, obj1, obj2):
-    #     result_column_lines_list = []
-    #     column1 = obj1.list_lines
-    #     column2 = obj2.list_lines if obj2 else ['']
-    #     if column1 or column2:
-    #         for i in range(max(len(column1), len(column2))):
-    #             line1 = column1[i] if i < len(column1) else ''
-    #             line2 = column2[i] if i < len(column2) else ''
-    #             print(f'{line1.ljust(50, ' ')} {line2}')
-    #             result_column_lines_list.append(f'{line1.ljust(50)} {line2}')
-    #         print('')
-    #         result_column_lines_list.append('')
-    #         result_column_lines_list.append('')
-    #     return result_column_lines_list

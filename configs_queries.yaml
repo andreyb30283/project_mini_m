@@ -34,7 +34,7 @@ queries:
                   count int
                   )
                   ;'
-    read_from_table_lim': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc limit 10;'
+    'read_from_table_lim': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc limit 10;'
     'read_from_table': 'select queue,count from `310524-ptm_Andrii_Butov_mini_p`.`top_queries` order by count desc ;'
     write_in_table_new_queue: 'insert into `310524-ptm_Andrii_Butov_mini_p`.`top_queries`
                               (queue,count)
